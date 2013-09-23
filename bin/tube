@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Class::Load ':all';
+
+$|=1;
+
+my $class = shift @ARGV || "Tube";
+
+load_class($class);
+
+$class->new->run;
+
+exit 0;
