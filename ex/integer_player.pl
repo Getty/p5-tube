@@ -100,7 +100,7 @@
       print "diff ".( $_[0]->current_tick - Data::MessagePack->unpack($_[ARG1]) )."\n";
     } else {
       print "got tick ".$_[ARG1]."\n";
-      $_[0]->start_tick($_[ARG1]);
+      $_[0]->start_tick(Data::MessagePack->unpack($_[ARG1]));
       $_[0]->start_time(time);
       $_[0]->tick;
     }

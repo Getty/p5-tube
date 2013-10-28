@@ -135,18 +135,18 @@ sub tick {
   print "tick ".$self->current_tick."\n";
   
   foreach(keys(%{$self->players})) {
-      send_update_to_client($_);
+      $_[0]->send_update_to_client($_);
   }
   
   $poe_kernel->delay( tick => $self->tickdelay );
 }
 
 sub send_update_to_client {
-    my ($clientId) = @_;
+    my ($self, $clientId) = @_;
     
-    $_[0]->zmq->write( $_[0]->alias, $clientId, ZMQ_SNDMORE );
-    $_[0]->zmq->write( $_[0]->alias, '', ZMQ_SNDMORE );
-    $_[0]->zmq->write( $_[0]->alias, Data::MessagePack->pack($_[0]->current_tick) );
+    $self->zmq->write( $_[0]->alias, $clientId, ZMQ_SNDMORE );
+    $self->zmq->write( $_[0]->alias, '', ZMQ_SNDMORE );
+    $self->zmq->write( $_[0]->alias, Data::MessagePack->pack($_[0]->current_tick) );
 }
 
 sub run { $poe_kernel->run }
