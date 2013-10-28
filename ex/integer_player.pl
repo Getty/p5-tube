@@ -27,7 +27,7 @@
   has host => (
     is => 'ro',
     lazy => 1,
-    default => sub { '127.0.0.1' },
+    default => sub { 'titanium.r2zer0.net' },
   );
 
   has tickrate => (
@@ -144,18 +144,17 @@
   sub need_tick {
     return if $_[0]->start_tick;
     print "need tick!\n";
-    # return unless $_[0]->current_tick > 0;
-    # $self->zmq->write( $self->alias, 'SERVER', ZMQ_SNDMORE );
-    # $self->zmq->write( $self->alias, '', ZMQ_SNDMORE );
+    
     $_[0]->zmq->write( $_[0]->alias, 'needtick' );
+    
     $poe_kernel->delay( need_tick => 1 );
   }
 
   sub tick {
     my ( $self ) = @_;
-    # $self->zmq->write( $self->alias, 'SERVER', ZMQ_SNDMORE );
-    # $self->zmq->write( $self->alias, '', ZMQ_SNDMORE );
+    
     $self->zmq->write( $self->alias, $self->current_tick );
+    
     $poe_kernel->delay( tick => $self->tickdelay );
   }
 

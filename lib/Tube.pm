@@ -84,17 +84,28 @@ sub zmqsock_bind_added { print "Listening to ".$_[ARG1]."\n" }
 sub zmqsock_created { print "Created socket type ".$_[ARG1]."\n" }
 sub zmqsock_closing { print "[".$_[ARG0]."] closing\n" }
 
+# Protocol:
+# first client sends 'needtick' message to register for ticks
+# then server sends tick (and state, when we have it) updates to client
+# and client sends tick-stamped state updates
+#
+# Each tick server gathers latest data for all clients, keeping a note of the
+# differences in tick, sends
+
 sub zmqsock_multipart_recv {
-  my ( $from, $envelope, $data ) = @{$_[ARG1]};
-  if ($data eq 'needtick') {
-    print "[".sprintf("%10s",$from)."] need tick\n";
-  } else {
-    my $diff = $_[0]->current_tick - $data;
-    print "[".sprintf("%10s",$from)."] ".sprintf("%10d",$data)." ".sprintf("%10d",$diff)."\n" if $diff;
-  }
-  $_[0]->zmq->write( $_[0]->alias, $from, ZMQ_SNDMORE );
-  $_[0]->zmq->write( $_[0]->alias, '', ZMQ_SNDMORE );
-  $_[0]->zmq->write( $_[0]->alias, $_[0]->current_tick );
+    my ( $from, $envelope, $data ) = @{$_[ARG1]};
+    $data = Data::MessagePack->unpack($data);
+    if ($data eq 'needtick') {
+        # Initial 'registration' request
+        print "[".sprintf("%10s",$from)."] need tick\n";
+        $_[0]->players->{$from} = 0;
+    
+    } else {
+        # State update from client
+        my $diff = $_[0]->current_tick - $data;
+        $_[0]->players->{$from} = $data;
+        print "[".sprintf("%10s",$from)."] ".sprintf("%10d",$data)." ".sprintf("%10d",$diff)."\n" if $diff;
+    }
 }
 
 sub start {
@@ -121,7 +132,20 @@ sub emitter_started {
 sub tick {
   my ( $self ) = @_;
   print "tick ".$self->current_tick."\n";
+  
+  foreach(keys(%{$self->players})) {
+      send_update_to_client($_);
+  }
+  
   $poe_kernel->delay( tick => $self->tickdelay );
+}
+
+sub send_update_to_client {
+    my ($clientId) = @_;
+    
+    $_[0]->zmq->write( $_[0]->alias, $clientId, ZMQ_SNDMORE );
+    $_[0]->zmq->write( $_[0]->alias, '', ZMQ_SNDMORE );
+    $_[0]->zmq->write( $_[0]->alias, $_[0]->current_tick );
 }
 
 sub run { $poe_kernel->run }
