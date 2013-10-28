@@ -15,6 +15,8 @@
 
   use POSIX qw( floor );
   use Time::HiRes qw( time gettimeofday tv_interval );
+  
+  use Data::MessagePack;
 
   with 'POEx::ZMQ3::Role::Emitter';
 
@@ -95,7 +97,7 @@
 
   sub zmqsock_recv {
     if ($_[0]->start_tick) {
-      print "diff ".( $_[0]->current_tick - $_[ARG1] )."\n";
+      print "diff ".( $_[0]->current_tick - Data::MessagePack->unpack($_[ARG1]) )."\n";
     } else {
       print "got tick ".$_[ARG1]."\n";
       $_[0]->start_tick($_[ARG1]);
@@ -145,7 +147,7 @@
     return if $_[0]->start_tick;
     print "need tick!\n";
     
-    $_[0]->zmq->write( $_[0]->alias, 'needtick' );
+    $_[0]->zmq->write( $_[0]->alias, Data::MessagePack->pack('needtick') );
     
     $poe_kernel->delay( need_tick => 1 );
   }
@@ -153,7 +155,7 @@
   sub tick {
     my ( $self ) = @_;
     
-    $self->zmq->write( $self->alias, $self->current_tick );
+    $self->zmq->write( $self->alias, Data::MessagePack->pack($self->current_tick) );
     
     $poe_kernel->delay( tick => $self->tickdelay );
   }

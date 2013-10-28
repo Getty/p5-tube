@@ -9,6 +9,7 @@ use ZMQ::Constants qw(
   ZMQ_IDENTITY
   ZMQ_SNDMORE
 );
+use Data::MessagePack;
 
 use POSIX qw( floor );
 use Time::HiRes qw( time gettimeofday tv_interval );
@@ -112,7 +113,7 @@ sub start {
   my ( $self ) = @_;
   $self->zmq->start;
   $self->zmq->create( $self->alias, ZMQ_ROUTER );
-  $self->zmq->set_zmq_sockopt( $self->alias, ZMQ_IDENTITY, 'SERVER' );
+  $self->zmq->set_zmq_sockopt( $self->alias, ZMQ_IDENTITY, 'SERVER' ); # do routers have identities? ... probably if we added P2P element (client-side router)
   $self->_start_emitter;
 }
 
@@ -145,7 +146,7 @@ sub send_update_to_client {
     
     $_[0]->zmq->write( $_[0]->alias, $clientId, ZMQ_SNDMORE );
     $_[0]->zmq->write( $_[0]->alias, '', ZMQ_SNDMORE );
-    $_[0]->zmq->write( $_[0]->alias, $_[0]->current_tick );
+    $_[0]->zmq->write( $_[0]->alias, Data::MessagePack->pack($_[0]->current_tick) );
 }
 
 sub run { $poe_kernel->run }
