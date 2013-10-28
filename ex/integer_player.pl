@@ -29,7 +29,7 @@
   has host => (
     is => 'ro',
     lazy => 1,
-    default => sub { 'titanium.r2zer0.net' },
+    default => sub { 'localhost' },
   );
 
   has tickrate => (
