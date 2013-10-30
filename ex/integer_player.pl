@@ -15,6 +15,8 @@
 
   use POSIX qw( floor );
   use Time::HiRes qw( time gettimeofday tv_interval );
+  
+  use Data::MessagePack;
 
   with 'POEx::ZMQ3::Role::Emitter';
 
@@ -27,7 +29,7 @@
   has host => (
     is => 'ro',
     lazy => 1,
-    default => sub { '127.0.0.1' },
+    default => sub { 'localhost' },
   );
 
   has tickrate => (
@@ -95,10 +97,10 @@
 
   sub zmqsock_recv {
     if ($_[0]->start_tick) {
-      print "diff ".( $_[0]->current_tick - $_[ARG1] )."\n";
+      print "diff ".( $_[0]->current_tick - Data::MessagePack->unpack($_[ARG1]) )."\n";
     } else {
       print "got tick ".$_[ARG1]."\n";
-      $_[0]->start_tick($_[ARG1]);
+      $_[0]->start_tick(Data::MessagePack->unpack($_[ARG1]));
       $_[0]->start_time(time);
       $_[0]->tick;
     }
@@ -144,18 +146,17 @@
   sub need_tick {
     return if $_[0]->start_tick;
     print "need tick!\n";
-    # return unless $_[0]->current_tick > 0;
-    # $self->zmq->write( $self->alias, 'SERVER', ZMQ_SNDMORE );
-    # $self->zmq->write( $self->alias, '', ZMQ_SNDMORE );
-    $_[0]->zmq->write( $_[0]->alias, 'needtick' );
+    
+    $_[0]->zmq->write( $_[0]->alias, Data::MessagePack->pack('needtick') );
+    
     $poe_kernel->delay( need_tick => 1 );
   }
 
   sub tick {
     my ( $self ) = @_;
-    # $self->zmq->write( $self->alias, 'SERVER', ZMQ_SNDMORE );
-    # $self->zmq->write( $self->alias, '', ZMQ_SNDMORE );
-    $self->zmq->write( $self->alias, $self->current_tick );
+    
+    $self->zmq->write( $self->alias, Data::MessagePack->pack($self->current_tick) );
+    
     $poe_kernel->delay( tick => $self->tickdelay );
   }
 
